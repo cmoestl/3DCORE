@@ -1,0 +1,2 @@
+spp_nom_20180812_20250831_v035_RO2.bsp <- https://sppgway.jhuapl.edu/lpredict_ephem
+psp_dyn_2018_135_100.tf <- https://sppgway.jhuapl.edu/psp_frames
