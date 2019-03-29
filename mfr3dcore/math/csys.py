@@ -1,11 +1,17 @@
 # -*- coding: utf-8 -*-
 
+"""csys.py
+
+Functions for implementing any required coordinate systems. All functions are optimized using numba and only take
+double precision floats (as either vectors or single numbers).
+"""
+
 import numba as nb
 import numpy as np
 
 
 @nb.njit(nb.float64[:](nb.float64[:]))
-def csys_polar_xyz(v):
+def csys_polar_xyz(v: np.ndarray) -> np.ndarray:
     """
     Transforms Polar coordinates (r, psi, phi) to Cartesian coordinates (x, y, z).
 
@@ -20,7 +26,7 @@ def csys_polar_xyz(v):
 
 
 @nb.njit(nb.float64[:](nb.float64[:], nb.float64, nb.float64, nb.float64))
-def csys_ttorus_to_xyz(v, rho_0, rho_1, aspect=1):
+def csys_ttorus_to_xyz(v: np.ndarray, rho_0: np.float64, rho_1: np.float64, aspect: np.float64 = 1) -> np.ndarray:
     """
     Transforms tapered Torus coordinates (r, psi, phi) to Cartesian coordinates (x, y, z).
 
@@ -41,7 +47,7 @@ def csys_ttorus_to_xyz(v, rho_0, rho_1, aspect=1):
 
 
 @nb.njit(nb.float64[:](nb.float64[:], nb.float64, nb.float64, nb.float64))
-def csys_xyz_to_ttorus(v, rho_0, rho_1, aspect=1):
+def csys_xyz_to_ttorus(v: np.ndarray, rho_0: np.float64, rho_1: np.float64, aspect: np.float64 = 1) -> np.ndarray:
     """
     Transforms Cartesian coordinates (x, y, z) to tapered Torus coordinates (r, psi, phi).
 

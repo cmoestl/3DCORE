@@ -1,11 +1,17 @@
 # -*- coding: utf-8 -*-
 
+"""errot.py
+
+Implements vector rotation using the Euler-Rodrigues formula.
+For a quick recap see (https://en.wikipedia.org/wiki/Euler–Rodrigues_formula).
+"""
+
 import numba as nb
 import numpy as np
 
 
 @nb.njit(nb.float64[:](nb.float64[:], nb.float64[:]))
-def errot(v, w):
+def errot(v: np.ndarray, w: np.ndarray) -> np.ndarray:
     """
     Rotate a vector by the given Euler-Rodrigues coefficients.
 
@@ -26,7 +32,7 @@ def errot(v, w):
 
 
 @nb.njit(nb.float64[:](nb.float64[:], nb.float64[:]))
-def errot_compose(w1, w2):
+def errot_compose(w1: np.ndarray, w2: np.ndarray) -> np.ndarray:
     """
     Compose two rotations given by their Euler-Rodrigues coefficients.
 
@@ -43,17 +49,17 @@ def errot_compose(w1, w2):
 
 
 @nb.njit(nb.float64[:](nb.float64, nb.float64[:]))
-def errot_get(angle, vrot):
+def errot_get(ang: np.float64, rot: np.ndarray) -> np.ndarray:
     """
     Calculate Euler-Rodrigues coefficients for a specific rotation (angle + vector).
 
-    :param angle: Rotation angle
-    :param vrot: Rotation vector
+    :param ang: Rotation angle
+    :param rot: Rotation vector
     :return: Euler-Rodrigues coefficients
     """
     return np.array([
-        np.cos(np.radians(angle / 2)),
-        vrot[0] * np.sin(np.radians(angle / 2)),
-        vrot[1] * np.sin(np.radians(angle / 2)),
-        vrot[2] * np.sin(np.radians(angle / 2)),
+        np.cos(np.radians(ang / 2)),
+        rot[0] * np.sin(np.radians(ang / 2)),
+        rot[1] * np.sin(np.radians(ang / 2)),
+        rot[2] * np.sin(np.radians(ang / 2)),
     ])

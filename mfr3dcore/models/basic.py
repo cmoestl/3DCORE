@@ -6,41 +6,47 @@ import itertools
 import numba as nb
 import numpy as np
 
+from typing import Union
+
 from ..math import csys_ttorus_to_xyz, csys_xyz_to_ttorus
 from ..math import errot, errot_compose, errot_get
 
 
-@nb.njit(nb.float64[:](nb.float64, nb.float64, nb.float64, nb.float64, nb.float64, nb.float64, nb.float64, nb.float64, nb.float64))
-def gold_hoyle(r, psi, phi, b, rho_0, rho_1, a, h, t):
+@nb.njit(nb.float64[:](nb.float64, nb.float64, nb.float64, nb.float64, nb.float64, nb.float64, nb.float64, nb.float64,
+                       nb.float64))
+def gold_hoyle(r: np.float64, psi: np.float64, phi: np.float64, b: np.float64, rho_0: np.float64, rho_1: np.float64,
+               a: np.float64, h: np.float64, t: np.float64) -> np.ndarray:
     """
     Gold & Hoyle Flux Rope Model (see Gold & Hoyle (1960)).
 
     Calculates the magnetic field vector in Cartesian coordinates from the tapered Torus coordinates.
     """
+    t_ratio = t / (r * rho_1)
+
     b_r = 0
-    b_psi = b / np.sqrt(1 + (t ** 2) * ((r * rho_1) ** 2))
-    b_phi = h * b * t * (r * rho_1) / np.sqrt(1 + (t ** 2) * ((r * rho_1) ** 2))
+    b_psi = b / np.sqrt(1 + (t_ratio ** 2) * ((r * rho_1) ** 2))
+    b_phi = h * b * t_ratio * (r * rho_1) / np.sqrt(1 + (t_ratio ** 2) * ((r * rho_1) ** 2))
 
     vr = np.array([
         -np.cos(phi) * np.cos(psi),
         np.cos(phi) * np.sin(psi),
         np.sin(phi) / a
     ])
-    vr = vr / np.sqrt(np.sum(vr ** 2))
+    vr = vr / np.linalg.norm(vr)
 
     vpsi = np.array([
         np.sin(psi) * (rho_0 + r * rho_1 * np.cos(phi) + 0.5 * r * rho_1 * np.cos(phi) * np.cos(psi / 2)),
         np.cos(psi) * (rho_0 + r * rho_1 * np.cos(phi) + 0.5 * r * rho_1 * np.cos(phi) * np.cos(psi / 2)),
         r * rho_1 / 2 / a * np.cos(psi / 2) * np.sin(phi)
     ])
-    vpsi = vpsi / np.sqrt(np.sum(vpsi ** 2))
+    vpsi = vpsi / np.linalg.norm(vpsi)
 
     vphi = np.array([
         np.sin(phi) * np.cos(psi),
         -np.sin(phi) * np.sin(psi),
         np.cos(phi) / a
     ])
-    vphi = vphi / np.sqrt(np.sum(vphi ** 2))
+    vphi = vphi / np.linalg.norm(vphi)
 
     m = np.array([
         [vr[0], vpsi[0], vphi[0]],
@@ -54,12 +60,14 @@ def gold_hoyle(r, psi, phi, b, rho_0, rho_1, a, h, t):
 
 
 @nb.njit(nb.float64(nb.float64, nb.float64, nb.float64, nb.float64, nb.float64, nb.float64))
-def propagate_r(dv, dt, bg_speed, bg_drag, bg_sign, r_0):
+def propagate_r(dv: np.float64, dt: np.float64, bg_speed: np.float64, bg_drag: np.float64, bg_sign: np.int32,
+                r_0: np.float64) -> np.float64:
     return bg_sign / bg_drag * np.log1p(bg_sign * bg_drag * dv * dt) + bg_speed * dt + r_0
 
 
 @nb.njit(nb.float64(nb.float64, nb.float64, nb.float64, nb.float64, nb.float64))
-def propagate_v(dv, dt, bg_speed, bg_drag, bg_sign):
+def propagate_v(dv: np.float64, dt: np.float64, bg_speed: np.float64, bg_drag: np.float64,
+                bg_sign: np.int32) -> np.float64:
     return dv / (1 + bg_sign * bg_drag * dv * dt) + bg_speed
 
 
@@ -77,9 +85,10 @@ class MagneticFluxRope(object):
 
     The propagation of the CME is described using a simple drag based model (see Vrsnak et al. 2013).
     """
-    def __init__(self, radius: float, speed: float, time: datetime.datetime, aspect: float, longitude: float,
-                 latitude: float, inclination: float, diameter: float, handedness: int, strength: float, turns: float,
-                 background_drag: float, background_speed: float, background_strength: float):
+    def __init__(self, radius: np.float64, speed: np.float64, time: datetime.datetime, aspect: np.float64,
+                 longitude: np.float64, latitude: np.float64, inclination: np.float64, diameter: np.float64,
+                 handedness: np.int32, strength: np.float64, turns: np.float64, background_drag: np.float64,
+                 background_speed: np.float64, background_strength: np.float64):
         """
         Initialize model parameters and calculate the Rodrigues-coefficients for rotating into and out of the
         coordinate system.
@@ -99,35 +108,35 @@ class MagneticFluxRope(object):
         :param background_speed: solar wind speed (km/s)
         :param background_strength: solar wind magnetic field strength (nT)
         """
-        self._radius_t = radius
-        self._radius_0 = radius
+        self._radius_t = np.float64(radius)
+        self._radius_0 = np.float64(radius)
 
-        self._speed_t = speed
-        self._speed_0 = speed
+        self._speed_t = np.float64(speed)
+        self._speed_0 = np.float64(speed)
 
         self._time_t = time
         self._time_0 = time
 
-        self._aspect = aspect
-        self._longitude = longitude
-        self._latitude = latitude
-        self._inclination = inclination
-        self._diameter = diameter
+        self._aspect = np.float64(aspect)
+        self._longitude = np.float64(longitude)
+        self._latitude = np.float64(latitude)
+        self._inclination = np.float64(inclination)
+        self._diameter = np.float64(diameter)
 
-        self._handedness = handedness
+        self._handedness = np.int32(handedness)
 
         if handedness == 1:
             self._helicity = "R"
         else:
             self._helicity = "L"
 
-        self._strength = strength
-        self._turns = turns
+        self._strength = np.float64(strength)
+        self._turns = np.float64(turns)
 
-        self._bg_drag = background_drag
-        self._bg_sign = -1 + 2 * int(speed > background_speed)
-        self._bg_speed = background_speed
-        self._bg_strength = background_strength
+        self._bg_drag = np.float64(background_drag)
+        self._bg_sign = np.int32(-1 + 2 * int(speed > background_speed))
+        self._bg_speed = np.float64(background_speed)
+        self._bg_strength = np.float64(background_strength)
 
         self._errot_from = None
         self._errot_into = None
@@ -144,23 +153,23 @@ class MagneticFluxRope(object):
         lines = open(filename).read().splitlines()
 
         return cls(
-            float(lines[9]) * 695508,
-            float(lines[7]),
+            np.float64(np.float64(lines[9]) * 695508),
+            np.float64(lines[7]),
             ciso8601.parse_datetime(lines[11]),
 
-            1.0,
-            float(lines[26]),
-            float(lines[28]),
-            float(lines[30]) - 90.0,
-            float(lines[36]),
+            np.float64(1.0),
+            np.float64(lines[26]),
+            np.float64(lines[28]),
+            np.float64(np.float64(lines[30]) - 90.0),
+            np.float64(lines[36]),
 
-            int(lines[32]),
-            float(lines[38]),
-            float(lines[34]),
+            np.int32(lines[32]),
+            np.float64(lines[38]),
+            np.float64(lines[34]),
 
-            float(lines[13]) * 1e-7,
-            float(lines[15]),
-            float(lines[17])
+            np.float64(np.float64(lines[13]) * 1e-7),
+            np.float64(lines[15]),
+            np.float64(lines[17])
         )
 
     # ========== PROPERTIES ==========
@@ -170,26 +179,26 @@ class MagneticFluxRope(object):
         """
         Axial magnetic field strength (see Leitner (2007)).
         """
-        return self._strength * (2 * self.rho_0) ** (-1.64)
+        return np.float64(self._strength * (2 * self.rho_0) ** (-1.64))
 
     @property
     def r_apex(self):
-        return self._radius_t / 1.496e8
+        return np.float64(self._radius_t / 1.496e8)
 
     @property
     def v_apex(self):
-        return self._speed_t
+        return np.float64(self._speed_t)
 
     @property
     def rho_0(self):
-        return (self.r_apex - self.rho_1) / 2
+        return np.float64((self.r_apex - self.rho_1) / 2)
 
     @property
     def rho_1(self):
         """
         CME diameter as a function of distance (see Leitner (2007)).
         """
-        return self._diameter * (self.r_apex ** 1.14) / 2
+        return np.float64(self._diameter * (self.r_apex ** 1.14) / 2)
 
     # ========== KINEMATICS ==========
 
@@ -202,15 +211,15 @@ class MagneticFluxRope(object):
         if simulation_time < self._time_0:
             raise ValueError("given simulation time is before initial")
 
-        dt = int((simulation_time - self._time_0).total_seconds())
-        dv = float(self._speed_0 - self._bg_speed)
+        dt = np.int32((simulation_time - self._time_0).total_seconds())
+        dv = np.float64(self._speed_0 - self._bg_speed)
 
         self._radius_t = propagate_r(dv, dt, self._bg_speed, self._bg_drag, self._bg_sign, self._radius_0)
         self._speed_t = propagate_v(dv, dt, self._bg_speed, self._bg_drag, self._bg_sign)
 
     # ========== FLUX ROPE ==========
 
-    def extract_field(self, v):
+    def extract_field(self, v: np.ndarray) -> (np.ndarray, np.bool):
         """
         Extract magnetic field vector at the given Cartesian coordinates.
 
@@ -228,7 +237,7 @@ class MagneticFluxRope(object):
 
     # ========== VISUALIZE ==========
 
-    def wire_frame(self, s: int):
+    def wire_frame(self, s: int) -> np.ndarray:
         """
         Returns matrices for plotting the wire frame of the MFR
 
@@ -268,7 +277,7 @@ class MagneticFluxRope(object):
                 -self._errot_from[3]
             ])
 
-    def transform_into(self, v):
+    def transform_into(self, v: Union[np.ndarray, list]) -> np.ndarray:
         """
         Transforms cartesian coordinates into tapered torus coordinates (including rotation).
 
@@ -280,7 +289,7 @@ class MagneticFluxRope(object):
         else:
             return csys_xyz_to_ttorus(errot(v, self._errot_into), self.rho_0, self.rho_1, self._aspect)
 
-    def transform_from(self, v):
+    def transform_from(self, v: Union[np.ndarray, list]) -> np.ndarray:
         """
         Transforms tapered toroidal coordinates into cartesian coordinates (including rotation).
 

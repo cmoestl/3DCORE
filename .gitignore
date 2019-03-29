@@ -102,3 +102,15 @@ venv.bak/
 
 # mypy
 .mypy_cache/
+
+# PyCharm
+.idea
+
+# Mac OSX
+.DS_store
+
+# SPICE
+.bsp
+.tg
+.tls
+.tpc
