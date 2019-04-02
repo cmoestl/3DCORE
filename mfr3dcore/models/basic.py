@@ -21,32 +21,29 @@ def gold_hoyle(r: np.float64, psi: np.float64, phi: np.float64, b: np.float64, r
 
     Calculates the magnetic field vector in Cartesian coordinates from the tapered Torus coordinates.
     """
-    t_ratio = t / (r * rho_1)
-
     b_r = 0
-    b_psi = b / np.sqrt(1 + (t_ratio ** 2) * ((r * rho_1) ** 2))
-    b_phi = h * b * t_ratio * (r * rho_1) / np.sqrt(1 + (t_ratio ** 2) * ((r * rho_1) ** 2))
+    b_psi = b / np.sqrt(1 + t ** 2)
+    b_phi = h * b * t / np.sqrt(1 + t ** 2)
 
     vr = np.array([
-        -np.cos(phi) * np.cos(psi),
-        np.cos(phi) * np.sin(psi),
-        np.sin(phi) / a
+        -rho_1 * np.sin(psi / 2) * np.cos(phi) * np.cos(psi),
+        rho_1 * np.sin(psi / 2) * np.cos(phi) * np.sin(psi),
+        rho_1 * np.sin(psi / 2) * np.sin(phi) / a
     ])
-    vr = vr / np.linalg.norm(vr)
 
     vpsi = np.array([
-        np.sin(psi) * (rho_0 + r * rho_1 * np.cos(phi) + 0.5 * r * rho_1 * np.cos(phi) * np.cos(psi / 2)),
-        np.cos(psi) * (rho_0 + r * rho_1 * np.cos(phi) + 0.5 * r * rho_1 * np.cos(phi) * np.cos(psi / 2)),
+        rho_0 * np.sin(psi) + r * rho_1 * np.sin(psi / 2) * np.cos(phi) * np.sin(psi) - 0.5 * r * rho_1 * np.cos(
+            psi / 2) * np.cos(phi) * np.cos(psi),
+        rho_0 * np.cos(psi) + r * rho_1 * np.sin(psi / 2) * np.cos(phi) * np.cos(psi) + 0.5 * r * rho_1 * np.cos(
+            psi / 2) * np.cos(phi) * np.sin(psi),
         r * rho_1 / 2 / a * np.cos(psi / 2) * np.sin(phi)
     ])
-    vpsi = vpsi / np.linalg.norm(vpsi)
 
     vphi = np.array([
-        np.sin(phi) * np.cos(psi),
-        -np.sin(phi) * np.sin(psi),
-        np.cos(phi) / a
+        r * rho_1 * np.sin(psi / 2) * np.sin(phi) * np.cos(psi),
+        -r * rho_1 * np.sin(psi / 2) * np.sin(phi) * np.sin(psi),
+        r * rho_1 * np.sin(psi / 2) * np.cos(phi) / a
     ])
-    vphi = vphi / np.linalg.norm(vphi)
 
     m = np.array([
         [vr[0], vpsi[0], vphi[0]],
@@ -56,7 +53,7 @@ def gold_hoyle(r: np.float64, psi: np.float64, phi: np.float64, b: np.float64, r
 
     f = np.dot(m, np.array((b_r, b_psi, b_phi)))
 
-    return f
+    return b * f / np.linalg.norm(f)
 
 
 @nb.njit(nb.float64(nb.float64, nb.float64, nb.float64, nb.float64, nb.float64, nb.float64))
@@ -237,6 +234,35 @@ class MagneticFluxRope(object):
 
     # ========== VISUALIZE ==========
 
+    def field_lines(self, x0: np.ndarray, h: float = 0.01) -> np.ndarray:
+        """
+        Returns magnetic field line starting at x0 in Cartesian coordinates.
+
+        :param x0: initial position (r, psi, phi)
+        :param h: integration step size
+        :return: magnetic field line
+        """
+        psi0 = x0[1]
+        x0 = self.transform_from(x0)
+        xs = [x0]
+
+        def db(xk):
+            (r, psi, phi) = self.transform_into(xk)
+            dxk = gold_hoyle(r, psi, phi, self.b_axial, self.rho_0, self.rho_1, self._aspect, self._handedness,
+                             self._turns)
+
+            return dxk / np.linalg.norm(dxk)
+
+        while self.transform_into(xs[-1])[1] < 2 * np.pi - psi0:
+            # RK4
+            k1 = h * db(xs[-1])
+            k2 = h * db(xs[-1] + k1 / 2)
+            k3 = h * db(xs[-1] + k2 / 2)
+            k4 = h * db(xs[-1] + k3)
+            xs.append(xs[-1] + 1 / 6 * (k1 + 2 * k2 + 2 * k3 + k4))
+
+        return np.array(xs)
+
     def wire_frame(self, s: int) -> np.ndarray:
         """
         Returns matrices for plotting the wire frame of the MFR
@@ -265,7 +291,7 @@ class MagneticFluxRope(object):
         uz = np.array([0, 0, 1.0])
 
         c1 = errot_get(self._longitude, uz)
-        c2 = errot_get(-self._latitude, errot(uy, c1))
+        c2 = errot_get(np.float64(-self._latitude), errot(uy, c1))
         c3 = errot_get(self._inclination, errot(ux, errot_compose(c1, c2)))
 
         self._errot_from = errot_compose(errot_compose(c1, c2), c3)
