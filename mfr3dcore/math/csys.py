@@ -74,9 +74,9 @@ def csys_xyz_to_ttorus(v: np.ndarray, rho_0: np.float64, rho_1: np.float64, aspe
 
     if v[0] == rho_0:
         if v[1] >= 0:
-            psi = 3 * np.pi / 2
-        else:
             psi = np.pi / 2
+        else:
+            psi = 3 * np.pi / 2
     else:
         psi = np.arctan2(-v[1], v[0] - rho_0) + np.pi
 
