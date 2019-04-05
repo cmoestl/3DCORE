@@ -1,3 +1,5 @@
 # -*- coding: utf-8 -*-
 
-name = "mfr3dcore"
+from . import math
+from . import models
+from . import spice

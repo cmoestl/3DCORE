@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-"""errot.py
+"""euler_rodrigues.py
 
 Implements vector rotation using the Euler-Rodrigues formula.
 For a quick recap see (https://en.wikipedia.org/wiki/Euler–Rodrigues_formula).
@@ -49,7 +49,7 @@ def errot_compose(w1: np.ndarray, w2: np.ndarray) -> np.ndarray:
 
 
 @nb.njit(nb.float64[:](nb.float64, nb.float64[:]))
-def errot_get(ang: np.float64, rot: np.ndarray) -> np.ndarray:
+def errot_get(ang: float, rot: np.ndarray) -> np.ndarray:
     """
     Calculate Euler-Rodrigues coefficients for a specific rotation (angle + vector).
 

@@ -49,7 +49,7 @@ def get_trajectory(body: str, times: Union[datetime.datetime, list], frame: str 
     :param frame: reference frame
     :param observer: observer name
     :param units: unit length (AU, km, m)
-    :return:
+    :return: trajectory
     """
     if isinstance(times, list):
         times_et = [spiceypy.datetime2et(t.replace(tzinfo=None)) for t in times]
@@ -76,9 +76,9 @@ def get_vector(frame_from: str, frame_to: str, vector: np.ndarray, time: datetim
 
     :param frame_from: source frame
     :param frame_to: target frame
-    :param vector: vector
+    :param vector: vector in source frame
     :param time: datetime
-    :return:
+    :return: vector in target frame
     """
     if frame_from == frame_to:
         return vector

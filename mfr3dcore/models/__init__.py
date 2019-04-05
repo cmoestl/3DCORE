@@ -1,3 +1,3 @@
 # -*- coding: utf-8 -*-
 
-from .basic import MagneticFluxRope
+from .toroidal import ToroidalMFR
