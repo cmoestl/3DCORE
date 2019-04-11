@@ -109,8 +109,9 @@ if __name__ == '__main__':
         # plot full psp trajectory
         ax.plot(psp_trajectory_full[:, 0], psp_trajectory_full[:, 1], psp_trajectory_full[:, 2], color="k", lw=1, ls="--")
 
-        #ax.view_init(elev=30, azim=171)
-        ax.view_init(elev=90, azim=171)
+         
+        ax.view_init(elev=30, azim=151+k/8)
+        #ax.view_init(elev=90, azim=171)
 
         ax.set_xlim([-boxsize, boxsize])
         ax.set_ylim([-boxsize, boxsize])
