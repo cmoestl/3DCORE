@@ -12,18 +12,17 @@ largest at the apex of the torus).
 import ciso8601
 import datetime
 import itertools
+import numba as nb
 import numpy as np
 
 from typing import Union
 
-from .magnetic_models import gh_ttorus_to_xyz
-from .propagation_models import vk_drag_model
 
-from ..math import csys_ttorus_to_xyz, csys_xyz_to_ttorus
+from ..math import csys_torusv1_to_xyz, csys_xyz_to_torusv1, csys_torusv1_to_xyz_jacobian
 from ..math import errot, errot_compose, errot_get
 
 
-class ToroidalMFR(object):
+class TorusV1(object):
     def __init__(self, radius: float, speed: float, time: datetime.datetime, aspect: float,
                  longitude: float, latitude: float, inclination: float, diameter: float,
                  handedness: int, strength: float, turns: float, background_drag: float,
@@ -172,7 +171,7 @@ class ToroidalMFR(object):
         v = self.transform_into(v)
 
         if v[0] < 1:
-            b = gh_ttorus_to_xyz(v, self.b, self._turns, self._handedness, self.rho_0, self.rho_1, self._aspect)
+            b = gh_torusv1_to_xyz(v, self.b, self._turns, self._handedness, self.rho_0, self.rho_1, self._aspect)
             return errot(b, self._errot_from), True
         else:
             return np.array([0.0, 0.0, 0.0]), False
@@ -196,9 +195,9 @@ class ToroidalMFR(object):
             h = self.rho_0 / 100
 
         def iterate(xk):
-            ub = gh_ttorus_to_xyz(self.transform_into(xk), self.b, self._turns, self._handedness, self.rho_0,
-                                  self.rho_1,
-                                  self._aspect)
+            ub = gh_torusv1_to_xyz(self.transform_into(xk), self.b, self._turns, self._handedness, self.rho_0,
+                                   self.rho_1,
+                                   self._aspect)
 
             return errot(ub / np.linalg.norm(ub), self._errot_from)
 
@@ -282,7 +281,7 @@ class ToroidalMFR(object):
         if isinstance(v, list) or (isinstance(v, np.ndarray) and v.ndim > 1):
             return np.array([self.transform_into(_v) for _v in v])
         else:
-            return csys_xyz_to_ttorus(errot(v, self._errot_into), self.rho_0, self.rho_1, self._aspect)
+            return csys_xyz_to_torusv1(errot(v, self._errot_into), self.rho_0, self.rho_1, self._aspect)
 
     def transform_from(self, v: Union[np.ndarray, list]) -> np.ndarray:
         """
@@ -294,4 +293,37 @@ class ToroidalMFR(object):
         if isinstance(v, list) or (isinstance(v, np.ndarray) and v.ndim > 1):
             return np.array([self.transform_from(_v) for _v in v])
         else:
-            return errot(csys_ttorus_to_xyz(v, self.rho_0, self.rho_1, self._aspect), self._errot_from)
+            return errot(csys_torusv1_to_xyz(v, self.rho_0, self.rho_1, self._aspect), self._errot_from)
+
+
+@nb.njit(nb.float64[:](nb.float64[:], nb.float64, nb.float64, nb.float64, nb.float64, nb.float64, nb.float64))
+def gh_torusv1_to_xyz(v: np.ndarray, b: float, t: float, h: float, rho_0: float, rho_1: float, a: float) -> np.ndarray:
+    """
+    Magnetic field vector according to the Gold & Hoyle model in cartesian coordinates adapted for our torus.
+
+    :param v: Toroidal coordinates (r, psi, phi)
+    :param b: Magnetic field strength
+    :param t: Number of twists (psi=0-2pi)
+    :param h: Field handedness
+    :param rho_0: Torus Radius (major)
+    :param rho_1: Torus Radius (minor)
+    :param a: Cross section aspect ratio (a / b)
+    :return: Magnetic field vector
+    """
+    b_r = 0
+    b_psi = b / np.sqrt(1 + t ** 2)
+    b_phi = h * b * t / np.sqrt(1 + t ** 2)
+
+    jac = csys_torusv1_to_xyz_jacobian(np.array([v[0], v[1], v[2]]), rho_0, rho_1, a)
+    b_xyz = np.dot(jac, np.array((b_r, b_psi, b_phi)))
+
+    return b * b_xyz / np.linalg.norm(b_xyz)
+
+
+@nb.njit(nb.float64[:](nb.float64, nb.float64, nb.float64, nb.float64, nb.float64, nb.float64))
+def vk_drag_model(radius: float, speed: float, dt: float, bg_speed: float, bg_drag: float, bg_sign: int) -> np.ndarray:
+    dv = speed - bg_speed
+    radius_dt = bg_sign / bg_drag * np.log1p(bg_sign * bg_drag * dv * dt) + bg_speed * dt + radius
+    speed_dt = dv / (1 + bg_sign * bg_drag * dv * dt) + bg_speed
+
+    return np.array([radius_dt, speed_dt])

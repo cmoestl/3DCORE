@@ -23,7 +23,7 @@ from mpl_toolkits.mplot3d import Axes3D
 if __name__ == '__main__':
     t0 = ciso8601.parse_datetime("2022-06-01 20:00+00:00")
 
-    event = mfr3dcore.models.ToroidalMFR(
+    event = mfr3dcore.models.TorusV1(
         5 * 695508, # R_0
         600,        # V_0
         t0,

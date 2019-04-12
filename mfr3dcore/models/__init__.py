@@ -1,3 +1,3 @@
 # -*- coding: utf-8 -*-
 
-from .toroidal import ToroidalMFR
+from .torus_v1 import TorusV1

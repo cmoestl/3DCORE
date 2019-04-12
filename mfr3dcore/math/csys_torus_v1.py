@@ -2,7 +2,7 @@
 
 """csys_toroidal.py
 
-Implements toroidal coordinate system.
+Implements toroidal (v1) coordinate system.
 """
 
 import numba as nb
@@ -10,7 +10,7 @@ import numpy as np
 
 
 @nb.njit(nb.float64[:](nb.float64[:], nb.float64, nb.float64, nb.float64))
-def csys_ttorus_to_xyz(v: np.ndarray, rho_0: float, rho_1: float, aspect: float = 1) -> np.ndarray:
+def csys_torusv1_to_xyz(v: np.ndarray, rho_0: float, rho_1: float, aspect: float = 1) -> np.ndarray:
     """
     Transforms toroidal coordinates (r, psi, phi) to Cartesian coordinates (x, y, z).
 
@@ -31,7 +31,7 @@ def csys_ttorus_to_xyz(v: np.ndarray, rho_0: float, rho_1: float, aspect: float 
 
 
 @nb.njit(nb.float64[:](nb.float64[:], nb.float64, nb.float64, nb.float64))
-def csys_xyz_to_ttorus(v: np.ndarray, rho_0: float, rho_1: float, aspect: float = 1) -> np.ndarray:
+def csys_xyz_to_torusv1(v: np.ndarray, rho_0: float, rho_1: float, aspect: float = 1) -> np.ndarray:
     """
     Transforms Cartesian coordinates (x, y, z) to toroidal coordinates (r, psi, phi).
 
@@ -79,7 +79,7 @@ def csys_xyz_to_ttorus(v: np.ndarray, rho_0: float, rho_1: float, aspect: float 
 
 
 @nb.njit(nb.float64[:, :](nb.float64[:], nb.float64, nb.float64, nb.float64))
-def csys_ttorus_to_xyz_jacobian(v: np.ndarray, rho_0: float, rho_1: float, aspect: float = 1) -> np.ndarray:
+def csys_torusv1_to_xyz_jacobian(v: np.ndarray, rho_0: float, rho_1: float, aspect: float = 1) -> np.ndarray:
     """
     Compute Jacobian matrix of the toroidal coordinate system with respect to the Cartesian coordinate system.
 

@@ -31,9 +31,9 @@ The `mfr3dcore` package can be installed using:
 pip install -e 3DCORE
 ```
 
-You can now use the package by using `import mf3dcore`. 
+You can now use the package by using `import mfr3dcore`. 
 
 If you want to use any SPICE kernels you will need to download the respective kernel files. If you want to download all 
-kernels simply use the script `setup_spice.sh` (you need to be inside the 3DCORE folder).
+kernels simply use the script `download.sh`.
 
 For basic usage see the given examples.
