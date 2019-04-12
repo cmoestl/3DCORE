@@ -28,7 +28,7 @@ if __name__ == '__main__':
     plt.close('all')
     t0 = ciso8601.parse_datetime("2022-06-01 20:00+00:00")
 
-    event = mfr3dcore.models.ToroidalMFR(
+    event = mfr3dcore.models.TorusV1(
         5 * 695508, # R_0
         600,        # V_0
         t0,
@@ -141,9 +141,5 @@ if __name__ == '__main__':
         plt.savefig(filename,dpi=100,facecolor=fig.get_facecolor(), edgecolor='none')
         print(k)
 
-
-
-
-       
     os.system('ffmpeg -r 30 -i mfr_animation/mfr_anim_%05d.jpg -b 5000k -r 30 mfr_plots/egu19_anim_top.mp4 -y -loglevel quiet')
  
