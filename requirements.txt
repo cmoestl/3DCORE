@@ -1,5 +1,4 @@
 astropy==3.1.2
-ciso8601==2.1.1
 cycler==0.10.0
 kiwisolver==1.0.1
 llvmlite==0.28.0
